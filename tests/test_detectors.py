@@ -10,32 +10,39 @@ from maskrcnn_benchmark.structures.image_list import to_image_list
 import utils
 
 
-CONFIG_FILES = [
-    # bbox
-    "e2e_faster_rcnn_R_50_C4_1x.yaml",
-    "e2e_faster_rcnn_R_50_FPN_1x.yaml",
-    "e2e_faster_rcnn_fbnet.yaml",
+# CONFIG_FILES = [
+#     # bbox
+#     "e2e_faster_rcnn_R_50_C4_1x.yaml",
+#     "e2e_faster_rcnn_R_50_FPN_1x.yaml",
+#     "e2e_faster_rcnn_fbnet.yaml",
 
-    # mask
-    "e2e_mask_rcnn_R_50_C4_1x.yaml",
-    "e2e_mask_rcnn_R_50_FPN_1x.yaml",
-    "e2e_mask_rcnn_fbnet.yaml",
+#     # mask
+#     "e2e_mask_rcnn_R_50_C4_1x.yaml",
+#     "e2e_mask_rcnn_R_50_FPN_1x.yaml",
+#     "e2e_mask_rcnn_fbnet.yaml",
 
-    # keypoints
-    # TODO: fail to run for random model due to empty head input
-    # "e2e_keypoint_rcnn_R_50_FPN_1x.yaml",
+#     # keypoints
+#     # TODO: fail to run for random model due to empty head input
+#     # "e2e_keypoint_rcnn_R_50_FPN_1x.yaml",
 
-    # gn
-    "gn_baselines/e2e_faster_rcnn_R_50_FPN_1x_gn.yaml",
-    # TODO: fail to run for random model due to empty head input
-    # "gn_baselines/e2e_mask_rcnn_R_50_FPN_Xconv1fc_1x_gn.yaml",
+#     # interact net
+#     "e2c_interact_net_R_50_FPN_1x.yaml"
+
+#     # gn
+#     "gn_baselines/e2e_faster_rcnn_R_50_FPN_1x_gn.yaml",
+#     # TODO: fail to run for random model due to empty head input
+#     # "gn_baselines/e2e_mask_rcnn_R_50_FPN_Xconv1fc_1x_gn.yaml",
 	
-    # retinanet
-    "retinanet/retinanet_R-50-FPN_1x.yaml",
+#     # retinanet
+#     "retinanet/retinanet_R-50-FPN_1x.yaml",
 
-    # rpn only
-    "rpn_R_50_C4_1x.yaml",
-    "rpn_R_50_FPN_1x.yaml",
+#     # rpn only
+#     "rpn_R_50_C4_1x.yaml",
+#     "rpn_R_50_FPN_1x.yaml",
+# ]
+
+CONFIG_FILES = [
+    "e2e_interact_net_R_50_FPN_1x.yaml"
 ]
 
 EXCLUDED_FOLDERS = [
@@ -86,7 +93,7 @@ def create_random_input(cfg, device):
 def _test_build_detectors(self, device):
     ''' Make sure models build '''
 
-    cfg_files = get_config_files(None, EXCLUDED_FOLDERS)
+    cfg_files = get_config_files(CONFIG_FILES, EXCLUDED_FOLDERS)
     self.assertGreater(len(cfg_files), 0)
 
     for cfg_file in cfg_files:
@@ -110,7 +117,7 @@ def _test_run_selected_detectors(self, cfg_files, device):
             inputs = create_random_input(cfg, device)
             model.eval()
             output = model(inputs)
-            self.assertEqual(len(output), len(inputs.image_sizes))
+            self.assertEqual(len(output), len(inputs.image_sizes))            
 
 
 class TestDetectors(unittest.TestCase):

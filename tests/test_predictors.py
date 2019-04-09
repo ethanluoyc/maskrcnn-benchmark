@@ -93,6 +93,27 @@ class TestPredictors(unittest.TestCase):
             self.assertEqual(
                 cur_out.shape[1], cur_cfg.MODEL.ROI_BOX_HEAD.NUM_CLASSES)
 
+    def test_roi_human_predictors(self):
+        ''' Make sure roi mask predictors run '''
+        for cur_in, cur_out, cur_cfg in _test_predictors(
+            self,
+            registry.ROI_HUMAN_PREDICTORS,
+            PREDICTOR_CFGS,
+            PREDICTOR_INPUT_CHANNELS,
+            hwsize=1,
+        ):
+            self.assertEqual(len(cur_out), 2)
+            action_logits, action_targets = cur_out[0], cur_out[1]
+
+            self.assertEqual(
+                cur_in.shape[0], action_logits.shape[0])
+            self.assertEqual(
+                cur_in.shape[0], action_targets.shape[0])
+            self.assertEqual(
+                action_logits.shape[1], cur_cfg.MODEL.ROI_HUMAN_HEAD.NUM_ACTIONS)
+            self.assertEqual(
+                action_targets.shape[1], cur_cfg.MODEL.ROI_HUMAN_HEAD.NUM_ACTIONS * 4)
+
 
 if __name__ == "__main__":
     unittest.main()
