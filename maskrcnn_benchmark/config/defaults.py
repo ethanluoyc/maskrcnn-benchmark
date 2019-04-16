@@ -265,6 +265,14 @@ _C.MODEL.ROI_HUMAN_HEAD.NUM_STACKED_CONVS = 4
 # Misc
 _C.MODEL.ROI_HUMAN_HEAD.STANDARD_DEVIATION = 0.3
 
+_C.MODEL.ROI_HUMAN_HEAD.BBOX_REG_WEIGHTS = (10., 10., 5., 5.)
+# RoI minibatch size *per image* (number of regions of interest [ROIs])
+# Total number of RoIs per training minibatch =
+#   TRAIN.BATCH_SIZE_PER_IM * TRAIN.IMS_PER_BATCH
+# E.g., a common configuration is: 512 * 2 * 8 = 8192
+_C.MODEL.ROI_HUMAN_HEAD.BATCH_SIZE_PER_IMAGE = 16
+# Target fraction of RoI minibatch that is labeled foreground (i.e. class > 0)
+_C.MODEL.ROI_HUMAN_HEAD.POSITIVE_FRACTION = 0.25
 
 # ---------------------------------------------------------------------------- #
 # ResNe[X]t options (ResNets = {ResNet, ResNeXt}

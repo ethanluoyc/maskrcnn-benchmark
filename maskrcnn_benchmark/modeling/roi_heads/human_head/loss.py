@@ -16,6 +16,8 @@ class HumanInteractionLossComputation(object):
     """
     Computes the loss for the Human interaction branch R-CNN.
     ?Also supports FPN
+    # TODO: rewrite this class to compute loss on human boxes only
+
     """
 
     def __init__(
@@ -35,28 +37,43 @@ class HumanInteractionLossComputation(object):
         self.box_coder = box_coder
 
     def match_targets_to_proposals(self, proposal, target):
-        match_quality_matrix = boxlist_iou(target, proposal)
-        matched_idxs = self.proposal_matcher(match_quality_matrix)
-        # Fast RCNN only need "labels" field for selecting the targets
-        target = target.copy_with_fields("labels")
+        # !! proposals and targets are human specific
+        # N proposals, M targets
+        # Also note that for each target, we have additional field `object`.
+        match_quality_matrix = boxlist_iou(target, proposal) # M x N
+        matched_idxs = self.proposal_matcher(match_quality_matrix) # N
+        
+        target = target.copy_with_fields("actions", "object")
         # get the targets corresponding GT for each proposal
         # NB: need to clamp the indices because we can have a single
         # GT in the image, and matched_idxs can be -2, which goes
         # out of bounds
-        matched_targets = target[matched_idxs.clamp(min=0)]
+        matched_targets = target[matched_idxs.clamp(min=0)] # N
         matched_targets.add_field("matched_idxs", matched_idxs)
-        return matched_targets
+        return matched_targets # N
 
     def prepare_targets(self, proposals, targets):
+        # for action labels
         labels = []
+        # target object bbox
         regression_targets = []
         for proposals_per_image, targets_per_image in zip(proposals, targets):
+            # Assume for for each image there are N proposals, M gt.
+            # TODO: figure out a data structure for handling human boxes gt.
+            # Once this is done, do:
+            #
+            
+            # 1) match with the IoU criteria
             matched_targets = self.match_targets_to_proposals(
                 proposals_per_image, targets_per_image
             )
+            
+            matched_targets_object_bbox = matched_targets.get_field("object")
             matched_idxs = matched_targets.get_field("matched_idxs")
 
-            labels_per_image = matched_targets.get_field("labels")
+            # 2) for each match, find ground truth action and (optionally objects)
+
+            labels_per_image = matched_targets.get_field("actions")
             labels_per_image = labels_per_image.to(dtype=torch.int64)
 
             # Label background (below the low threshold)
@@ -67,9 +84,10 @@ class HumanInteractionLossComputation(object):
             ignore_inds = matched_idxs == Matcher.BETWEEN_THRESHOLDS
             labels_per_image[ignore_inds] = -1  # -1 is ignored by sampler
 
-            # compute regression targets
+            # and also compute the regression target with the encoding scheme discussed.
+            # Compute regression targets, these are b_{o|h}
             regression_targets_per_image = self.box_coder.encode(
-                matched_targets.bbox, proposals_per_image.bbox
+                matched_targets_object_bbox, matched_targets.bbox
             )
 
             labels.append(labels_per_image)
@@ -128,7 +146,7 @@ class HumanInteractionLossComputation(object):
         """
 
         action_logits = cat(action_logits, dim=0)
-        target_pred = cat(target_pred, dim=0)
+        target_pred = cat(target_pred, dim=0) # (N, 4 * num_actions)
         device = action_logits.device
 
         if not hasattr(self, "_proposals"):
@@ -146,7 +164,7 @@ class HumanInteractionLossComputation(object):
         # get indices that correspond to the regression targets for
         # the corresponding ground truth labels, to be used with
         # advanced indexing
-        sampled_pos_inds_subset = torch.nonzero(labels > 0).squeeze(1)
+        sampled_pos_inds_subset = torch.nonzero(labels > 0).squeeze(1) # (K,) K # of nonzero elements
         labels_pos = labels[sampled_pos_inds_subset]
 
         map_inds = 4 * labels_pos[:, None] + torch.tensor(
@@ -165,6 +183,8 @@ class HumanInteractionLossComputation(object):
 
 
 def make_human_loss_evaluator(cfg):
+    # TODO: in paper the sampling strategy for human-centric branch
+    # is different from that of box heads
     matcher = Matcher(
         cfg.MODEL.ROI_HEADS.FG_IOU_THRESHOLD,
         cfg.MODEL.ROI_HEADS.BG_IOU_THRESHOLD,
